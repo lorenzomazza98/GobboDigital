@@ -2,6 +2,12 @@
 
 A digital teleprompter app for presentations with karaoke-style text, timers, and seamless navigation. Gobbo helps presenters stay on track with visually engaging prompts and precise timing.
 
+## Screenshots
+
+![Screen Gobbo 1](https://github.com/user-attachments/assets/a6a96683-40ef-4057-bf88-55a241fcf04a)
+![Screen Gobbo 2](https://github.com/user-attachments/assets/b9e8f2b5-17e8-4858-b876-17eef6eb4f33)
+
+
 ## Features
 
 - **Karaoke-Style Text Highlighting**: Smooth transitions between lines for dynamic presentations.
