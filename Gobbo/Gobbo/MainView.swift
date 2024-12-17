@@ -1,264 +1,262 @@
 import SwiftUI
 
 struct MainView: View {
-    @Binding var prompt: Prompt // The main data object containing title and content to be displayed.
+    @Binding var prompt: Prompt
 
-    // State variables to manage various aspects of the view's behavior and data.
-    @State private var offset: CGFloat = 0 // Used for tracking scroll offset if needed.
-    @State private var isEditing: Bool = false // Determines whether the edit mode is active.
-    @State private var title: String = "" // The title of the text content.
-    @State private var textContent: String = "" // The main text content.
-    @State private var editingTitle: String = "" // Temporary title used during editing.
-    @State private var editingText: String = "" // Temporary text content used during editing.
-    @State private var showStartTime: Date = Date() // The start time for the session.
-    @State private var showEndTime: Date = Date().addingTimeInterval(600) // The end time for the session, defaulted to 10 minutes later.
-    @State private var remainingTime: TimeInterval = 0 // The remaining time for the session.
-    @State private var currentTime: Date = Date() // The current time, updated regularly.
-    @State private var timeUpdateTimer: Timer? // Timer for updating the current time and remaining time.
-    @State private var showMirroringMessage: Bool = false // Determines whether a mirroring message is displayed.
-    @State private var shouldOpenEditView: Bool = false // Controls whether the edit view should open.
-    @State private var showTutorialAlert: Bool = false // Controls whether the tutorial alert is displayed.
-    @State private var currentLineIndex: Int = 0 // The index of the currently highlighted line.
-    @State private var timer: Timer? // Timer for automatically transitioning between lines (karaoke effect).
-    @State private var lines: [String] = [] // Array of lines for displaying the text content.
+    @State private var offset: CGFloat = 0
+    @State private var isEditing: Bool = false
+    @State private var title: String = ""
+    @State private var textContent: String = ""
+    @State private var editingTitle: String = ""
+    @State private var editingText: String = ""
+    @State private var showStartTime: Date = Date()
+    @State private var showEndTime: Date = Date().addingTimeInterval(600)
+    @State private var remainingTime: TimeInterval = 0
+    @State private var currentTime: Date = Date()
+    @State private var timeUpdateTimer: Timer?
+    @State private var showMirroringMessage: Bool = false
+    @State private var shouldOpenEditView: Bool = false
+    @State private var showTutorialAlert: Bool = false
+    @State private var currentLineIndex: Int = 0
+    @State private var timer: Timer?
+    @State private var lines: [String] = []
+
+    // New state variables for autoscroll and karaoke
+    @State private var isAutoScrollEnabled: Bool = false
+    @State private var isKaraokeEnabled: Bool = false
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea() // Sets the background color to black.
+            Color.black.ignoresSafeArea()
 
             VStack {
-                // Top bar with info and edit buttons.
+                // Top bar with autoscroll and karaoke toggles
                 HStack {
-                    Spacer()
+                    ToggleButton(
+                        title: "Autoscroll",
+                        isEnabled: $isAutoScrollEnabled,
+                        action: toggleAutoScroll
+                    )
 
-                    // Info button to show the tutorial alert.
-                    Button(action: {
-                        showTutorialAlert = true
-                    }) {
-                        Image(systemName: "info.circle")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                    }
-                    .accessibilityLabel("Information")
-                    .accessibilityHint("Tap to view the tutorial.")
-                    .padding(.trailing, 16)
-
-
-                    // Edit button to enable editing mode.
-                    Button("Edit") {
-                        editingTitle = title
-                        editingText = textContent
-                        isEditing = true
-                    }
-                    .font(.title2)
-                    .foregroundColor(.blue)
-                    .accessibilityLabel("Edit content")
-                    .accessibilityHint("Tap to modify the title and text content.")
-                    .padding(.trailing, 16)
+                    ToggleButton(
+                        title: "Karaoke",
+                        isEnabled: $isKaraokeEnabled,
+                        action: toggleKaraoke
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .topTrailing)
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Top bar with Info and Edit buttons")
+                .padding()
 
-                // Title of the text content.
+                // Title
                 Text(title)
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
 
                 Spacer()
 
-                Divider().background(Color.white.opacity(0.5)) // Divider line.
-
-                Spacer()
-
-                // Scrollable text view with karaoke-like highlighting.
+                // Scrollable karaoke text with tap detection
                 ScrollViewReader { scrollView in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(0..<lines.count, id: \.self) { index in
-                                Text(lines[index])
-                                    .font(.system(size: UIScreen.main.bounds.width * 0.04))
-                                    .lineSpacing(10)
-                                    .foregroundColor(index == currentLineIndex ? .blue : .white)
-                                    .padding(.horizontal, 30)
-                                    .accessibilityElement(children: .contain)
-                                    .accessibilityLabel("Scrollable text area with karaoke-style highlighting")
-                                    .animation(.easeInOut(duration: 0.3), value: currentLineIndex) // Smooth transition between lines.
-                                    .id(index) // Assign ID for scroll tracking.
-                                    .cornerRadius(8)
-                                    .accessibilityLabel("Line \(index + 1): \(lines[index])")
-                                    .accessibilityValue(index == currentLineIndex ? "Currently highlighted" : "Not highlighted")
-                                    .background(index == currentLineIndex ? Color.black.opacity(0.8) : Color.clear) // Highlight background.
+                    GeometryReader { geometry in
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 10) {
+                                ForEach(0..<lines.count, id: \.self) { index in
+                                    Text(lines[index])
+                                        .foregroundColor(index == currentLineIndex ? .blue : .white)
+                                        .id(index)
+                                        .padding()
+                                }
+                            }
+                            .contentShape(Rectangle()) // Estende l'area sensibile al tocco
+                            .gesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onEnded { value in
+                                        let tapX = value.location.x
+                                        let screenMidX = geometry.size.width / 2
+                                        
+                                        if !isAutoScrollEnabled && !isKaraokeEnabled {
+                                            if tapX < screenMidX {
+                                                // Tap sinistra -> Vai su
+                                                if currentLineIndex > 0 {
+                                                    currentLineIndex -= 1
+                                                }
+                                            } else {
+                                                // Tap destra -> Vai giù
+                                                if currentLineIndex < lines.count - 1 {
+                                                    currentLineIndex += 1
+                                                }
+                                            }
+                                        }
+                                    }
+                            )
+                        }
+                        .onChange(of: currentLineIndex) { index in
+                            withAnimation {
+                                scrollView.scrollTo(index, anchor: .top)
                             }
                         }
                     }
-                    .onChange(of: currentLineIndex) { index in
-                        // Scroll to the current line when the index changes.
-                        withAnimation {
-                            scrollView.scrollTo(index, anchor: .top)
-                        }
-                    }
-                    .padding(.bottom, 30)
                 }
-
-                Spacer()
-
-                // Timer view showing the current time.
-                HStack(spacing: 64) {
-                    TimerCircleView(
-                        title: """
-                        CURRENT
-                        TIME
-                        """,
-                        iconLeft: "clock",
-                        iconRight: "",
-                        timeRemaining: currentTimeFormatter.string(from: currentTime),
-                        color: .blue,
-                        circleSize: 200
-                    )
-                }
-                .padding(.bottom, 30)
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Timer section showing the current time");
 
                 Spacer()
             }
         }
-        .alert("Tutorial", isPresented: $showTutorialAlert) {
-            Button("Close", role: .cancel) {}
-                .accessibilityLabel("Close tutorial")
-        } message: {
-            Text("""
-            Here's how to use the app:
-
-            1. Use the Edit button to modify the content.
-            2. Scroll through the text by swiping up or down, or tapping on the left/right of the screen.
-            3. View the timer at the bottom that shows the current hour.
-
-            It is recommended to use screen mirroring while using this app.
-            """)
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Tutorial instructions")
-        }
         .onAppear {
-            loadData() // Load saved data when the view appears.
-            updateViewWithPrompt() // Update the view with the provided prompt.
-            startTimers() // Start the timers for time updates.
-            startKaraokeTimer() // Start the karaoke timer for transitioning lines.
+            loadData()
+            updateViewWithPrompt()
         }
         .onDisappear {
-            saveData() // Save data when the view disappears.
-            stopTimers() // Stop time-related timers.
-            stopKaraokeTimer() // Stop the karaoke timer.
+            stopTimers()
         }
-        .sheet(isPresented: $isEditing) {
-            // Edit view for modifying title and content.
-            EditTextView(
-                title: $editingTitle,
-                text: $editingText,
-                startTime: $showStartTime,
-                endTime: $showEndTime,
-                onSave: {
-                    // Save changes and update lines with empty line separation.
-                    lines = preprocessTextContent(editingText)
-                    title = editingTitle
-                    isEditing = false
-                    updateRemainingTime()
-                    showMirroringMessage = true
-                },
-                onCancel: {
-                    isEditing = false
-                    showMirroringMessage = true
-                }
-            )
+
+    }
+
+    // MARK: - Toggle Functions
+
+    private func toggleAutoScroll() {
+        if isAutoScrollEnabled {
+            stopTimers()
+        } else {
+            startTimers()
         }
     }
 
-    // Formatter for displaying the current time.
-    private var currentTimeFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
+    private func toggleKaraoke() {
+        if isKaraokeEnabled {
+            startKaraokeTimer()
+        } else {
+            stopKaraokeTimer()
+        }
     }
 
-    // Save the current title and content to UserDefaults.
-    private func saveData() {
-        UserDefaults.standard.set(prompt.title, forKey: "title-\(prompt.id.uuidString)")
-        UserDefaults.standard.set(prompt.content, forKey: "content-\(prompt.id.uuidString)")
-    }
+    // MARK: - Timer Management
 
-    // Load the saved title, content, start time, and end time from UserDefaults.
-    private func loadData() {
-        if let savedTitle = UserDefaults.standard.string(forKey: "title") {
-            title = savedTitle
-        }
-        if let savedTextContent = UserDefaults.standard.string(forKey: "textContent") {
-            textContent = savedTextContent
-        }
-        if let savedStartTime = UserDefaults.standard.object(forKey: "startTime") as? Date {
-            showStartTime = savedStartTime
-        }
-        if let savedEndTime = UserDefaults.standard.object(forKey: "endTime") as? Date {
-            showEndTime = savedEndTime
-        }
-        updateRemainingTime()
-    }
-
-    // Update the remaining time for the session.
-    private func updateRemainingTime() {
-        remainingTime = max(showEndTime.timeIntervalSinceNow, 0)
-    }
-
-    // Start a timer to update the current time and remaining time every second.
     private func startTimers() {
         timeUpdateTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             currentTime = Date()
             updateRemainingTime()
         }
     }
+    
+    private func updateViewWithPrompt() {
+        title = prompt.title
+        textContent = prompt.content
+        lines = preprocessTextContent(prompt.content)
+    }
 
-    // Stop the time update timer.
+    private func updateRemainingTime() {
+        remainingTime = max(showEndTime.timeIntervalSinceNow, 0) // Ensures remaining time is never negative
+    }
+
+    private func preprocessTextContent(_ content: String) -> [String] {
+        return content
+            .components(separatedBy: .newlines) // Split content into lines based on newlines
+            .filter { !$0.isEmpty }             // Remove any empty lines
+    }
+    
+
+    
+    private func loadData() {
+        if let savedTitle = UserDefaults.standard.string(forKey: "title-\(prompt.id.uuidString)") {
+            title = savedTitle
+        }
+        if let savedContent = UserDefaults.standard.string(forKey: "content-\(prompt.id.uuidString)") {
+            textContent = savedContent
+            lines = preprocessTextContent(savedContent) // Update lines after loading content
+        }
+        if let savedStartTime = UserDefaults.standard.object(forKey: "startTime-\(prompt.id.uuidString)") as? Date {
+            showStartTime = savedStartTime
+        }
+        if let savedEndTime = UserDefaults.standard.object(forKey: "endTime-\(prompt.id.uuidString)") as? Date {
+            showEndTime = savedEndTime
+        }
+        updateRemainingTime() // Update remaining time after loading
+    }
+
+
     private func stopTimers() {
         timeUpdateTimer?.invalidate()
         timeUpdateTimer = nil
     }
 
-    // Start a timer for transitioning lines in a karaoke-style effect.
     private func startKaraokeTimer() {
-        let totalDuration = showEndTime.timeIntervalSince(showStartTime) // Calculate the total duration.
-        let lineDuration = totalDuration / Double(lines.count) // Calculate the duration per line.
-
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            let elapsedTime = Date().timeIntervalSince(showStartTime)
-            let newLineIndex = Int(elapsedTime / lineDuration) // Determine the current line index.
-            if newLineIndex < lines.count && newLineIndex != currentLineIndex {
-                currentLineIndex = newLineIndex
-            }
+        stopKaraokeTimer() // Stop any existing timers
+        
+        // Calculate durations dynamically for each line
+        let durations = lines.map { line -> TimeInterval in
+            let wordCount = line.split(separator: " ").count
+            let baseTimePerWord: TimeInterval = 0.5 // Adjust base time per word as needed
+            return max(TimeInterval(wordCount) * baseTimePerWord, 1.0) // Ensure minimum duration
+        }
+        
+        var currentIndex = currentLineIndex
+        timer = Timer.scheduledTimer(withTimeInterval: durations[currentIndex], repeats: false) { _ in
+            advanceKaraokeLine(durations: durations)
         }
     }
 
-    // Stop the karaoke timer.
+    // Helper function to advance the karaoke line
+    private func advanceKaraokeLine(durations: [TimeInterval]) {
+        if currentLineIndex < lines.count - 1 {
+            currentLineIndex += 1
+            
+            // Start a new timer for the next line's duration
+            timer = Timer.scheduledTimer(withTimeInterval: durations[currentLineIndex], repeats: false) { _ in
+                advanceKaraokeLine(durations: durations)
+            }
+        } else {
+            stopKaraokeTimer() // Stop when the last line is reached
+        }
+    }
+
+
     private func stopKaraokeTimer() {
         timer?.invalidate()
         timer = nil
     }
-
-    // Preprocess the text content to split into lines and add empty lines between them.
-    func preprocessTextContent(_ text: String) -> [String] {
-        let lines = text.split(separator: "\n")
-        var processedLines: [String] = []
-
-        for line in lines {
-            processedLines.append(String(line))
-            processedLines.append("") // Add an empty line.
+    
+    private func handleTap(location: CGPoint, in screenSize: CGSize) {
+        let screenMidX = screenSize.width / 2
+        
+        if isAutoScrollEnabled || isKaraokeEnabled {
+            return // Do nothing if autoscroll or karaoke are enabled
         }
 
-        return processedLines
+        if location.x < screenMidX {
+            // Tapped on the left - move up
+            if currentLineIndex > 0 {
+                currentLineIndex -= 1
+            }
+        } else {
+            // Tapped on the right - move down
+            if currentLineIndex < lines.count - 1 {
+                currentLineIndex += 1
+            }
+        }
     }
 
-    // Update the view with the data from the provided prompt.
-    private func updateViewWithPrompt() {
-        title = prompt.title
-        lines = preprocessTextContent(prompt.content)
+}
+
+// MARK: - ToggleButton View
+
+struct ToggleButton: View {
+    let title: String
+    @Binding var isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: {
+            isEnabled.toggle()
+            action()
+        }) {
+            HStack {
+                Text(title)
+                Image(systemName: isEnabled ? "checkmark.square" : "square")
+            }
+            .foregroundColor(.blue)
+            .padding()
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(8)
+        }
     }
 }
+
+
