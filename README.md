@@ -4,8 +4,7 @@ A digital teleprompter app for presentations with karaoke-style text, timers, an
 
 ## Screenshots
 
-![Screen Gobbo 1](https://github.com/user-attachments/assets/a6a96683-40ef-4057-bf88-55a241fcf04a)
-![Screen Gobbo 2](https://github.com/user-attachments/assets/b9e8f2b5-17e8-4858-b876-17eef6eb4f33)
+![Screenshot 2024-12-17 (23 08 08)](https://github.com/user-attachments/assets/b024c122-c9f9-4ea2-ad5b-9e5f47df698c)
 
 
 ## Features
