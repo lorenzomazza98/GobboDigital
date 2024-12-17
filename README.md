@@ -106,6 +106,3 @@ This project is licensed under the MIT License. You’re free to use, modify, an
 - **Author**: Lorenzo Mazza
 - **Email**: [lorenzomazza98@icloud.com](mailto:lorenzomazza98@icloud.com)
 - **GitHub**: [https://github.com/lorenzomazza98](https://github.com/lorenzomazza98)
-
-Let me know if you'd like additional sections, such as FAQs or troubleshooting tips!
-
