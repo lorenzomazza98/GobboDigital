@@ -75,27 +75,6 @@ A digital teleprompter app for presentations with karaoke-style text, timers, an
   - Declarative UI with SwiftUI.
   - Modular components for reusability.
 
-## Roadmap
-
-- Add CoreData support for enhanced data persistence.
-- Enable rich text formatting in prompts.
-- Localization for multiple languages.
-- Integration with calendar apps for scheduling.
-- Export prompts as PDF.
-- Collaboration features (shareable links).
-
-## Contributing
-
-Contributions are welcome! To contribute:
-
-1. Fork the repository.
-2. Create a new branch:
-   ```bash
-   git checkout -b feature-name
-   ```
-3. Make your changes.
-4. Submit a pull request.
-
 ## License
 
 This project is licensed under the MIT License. You’re free to use, modify, and distribute this software with proper attribution.
